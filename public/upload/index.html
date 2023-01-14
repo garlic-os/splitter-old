@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Upload</title>
+</head>
+<body>
+	<input type="file" id="file" />
+	<button id="upload">Upload</button>
+
+	<script>
+		const fileInput = document.getElementById("file");
+		const uploadButton = document.getElementById("upload");
+		const token = URL(window.location).searchParams.get("token");
+
+		async function sendPart(partNumber, totalParts, filename, blob) {
+			const formData = new FormData();
+			formData.append("file", blob, filename);
+			formData.append("partNumber", i);
+			formData.append("totalParts", totalParts);
+			const response = await fetch("/upload", {
+				method: "PATCH",
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+				body: formData,
+			});
+			switch (response.status) {
+				case 204:
+					// Uploaded successfully
+					return true;
+				case 401:
+					// Token has expired or is invalid
+					return false;
+				default:
+					console.error({response});
+					throw new Error("Unexpected response");
+			}
+		}
+
+		uploadButton.addEventListener("click", async () => {
+			/**
+			 * @type {File}
+			 */
+			const file = fileInput.files[0];
+			const buffer = await file.arrayBuffer();
+
+			const chunkSize = 1024 * 1024 * 8; // 8 MB
+			const totalParts = Math.ceil(buffer.byteLength / chunkSize);
+			let beg = 0;
+			let end = chunkSize;
+			for (let i = 0; i < totalParts; i++) {
+				const slice = buffer.slice(beg, end);
+				const blob = new Blob([slice], { type: "application/octet-stream" });
+				await sendPart(i, totalParts, file.name, blob);
+				beg = end;
+				end += chunkSize;
+			}
+		});
+	</script>
+</body>
+</html>
