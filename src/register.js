@@ -20,13 +20,13 @@ const rest = new Discord.REST({ version: "10" });
 rest.setToken(config.discordBotToken);
 
 // Deploy the commands
-console.log(`🔃 Deploying ${commands.length} application (/) commands...`);
+console.log(`🔃 Registering ${commands.length} application (/) commands...`);
 
 // The put method is used to fully refresh all commands in the guild
 // with the current set
 const data = await rest.put(
-	Discord.Routes.applicationCommands(config.discordClientId),
+	Discord.Routes.applicationCommands(config.discordClientID),
 	{ body: commands },
 );
 
-console.log(`✅ Successfully deployed ${data.length} application (/) commands.`);
+console.log(`✅ Successfully registered ${data.length} application (/) commands.`);

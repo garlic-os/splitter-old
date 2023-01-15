@@ -1,19 +1,22 @@
 import fs from "node:fs/promises";
 import Discord from "discord.js";
+import * as config from "../config.js";
 
 
-const client = new Discord.Client({
+const bot = new Discord.Client({
 	intents: [Discord.GatewayIntentBits.Guilds],
 });
-client.commands = new Discord.Collection();
+bot.commands = new Discord.Collection();
 
-client.on(Discord.Events.ClientReady, () => {
-	console.log(`Bot logged in as ${client.user.tag}`);
+
+bot.on(Discord.Events.ClientReady, () => {
+	console.log(`Bot logged in as ${bot.user.tag}`);
 });
 
-client.on(Discord.Events.InteractionCreate, async (interaction) => {
+
+bot.on(Discord.Events.InteractionCreate, async (interaction) => {
 	if (!interaction.isChatInputCommand()) return;
-	const command = client.commands.get(interaction.commandName);
+	const command = bot.commands.get(interaction.commandName);
 
 	if (!command) {
 		console.error(`No command matching ${interaction.commandName} was found.`);
@@ -32,33 +35,41 @@ client.on(Discord.Events.InteractionCreate, async (interaction) => {
 });
 
 
+process.on("exit", () => {
+	bot.destroy();
+});
+
+
 async function loadCommands() {
 	const commandsDir = new URL("commands", import.meta.url);
 	const commandPaths = (await fs.readdir(commandsDir)).filter( (file) => {
 		return file.endsWith(".js");
 	});
 	
-	for (const file of commandPaths) {
-		const command = await import(`${commandsDir}/${file}`);
+	for (const path of commandPaths) {
+		const command = await import(`${commandsDir}/${path}`);
 		if ("data" in command && "execute" in command) {
-			client.commands.set(command.data.name, command);
+			bot.commands.set(command.data.name, command);
 		} else {
-			console.warn(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+			console.warn(`[WARNING] The command at ${path} is missing a required "data" or "execute" property.`);
 		}
 	}
 }
 
 
-export async function start(token) {
-	await loadCommands();
-	return await client.login(token);
-}
+await loadCommands();
+await bot.login(config.discordBotToken);
 
 
 export async function uploadToDiscord(buffer, filename) {
 	// Upload the file to Discord and return the URL.
-	const channel = await client.channels.fetch(config.botUploadChannelID);
-	const attachment = new Discord.MessageAttachment(buffer, filename);
-	const message = await channel.send(attachment);
+	const channel = await bot.channels.fetch(config.discordUploadChannelID);
+	// const attachment = new Discord.MessageAttachment(buffer, filename);
+	const message = await channel.send({
+		files: [{
+			attachment: buffer,
+			name: filename
+		}]
+	});
 	return message.attachments.first().url;
 }
