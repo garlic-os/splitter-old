@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Splitter | Download</title>
+</head>
+<body>
+	<p id="status">Loading...</p>
+
+	<script>
+		const fileID = window.location.pathname.split("/")[2];
+
+		const statusText = document.getElementById("status");
+
+		async function getPartURLs(fileID) {
+			statusText.innerText = "📥 Fetching part URLs...";
+			try {
+				return fetch(`/parts/${fileID}`).then(res => res.json());
+			} catch (error) {
+				statusText.innerText = "❌ Failed to fetch part URLs. See the console for more details";
+				console.log(error);
+			}
+		}
+
+		// Concatenate the files and download it back as a single file.
+		document.addEventListener("DOMContentLoaded", async () => {
+			// Download the parts.
+			const { filename, urls } = getPartURLs(fileID);
+			urls.sort();
+			const blobPromises = [];
+			for (const [i, url] of urls.entries()) {
+				statusText.innerText = `📥 Downloading part ${i + 1} of ${urls.length}...`;
+				const blobPromise = fetch(url).then(res => res.blob());
+				blobPromises.push(blobPromise);
+			}
+
+			statusText.innerText = `🔃 Processing parts...`;
+			const blobs = await Promise.all(blobPromises);
+
+			// Merge the blobs and download it.
+			statusText.innerText = "🔃 Merging parts...";
+			const mergedBlob = new Blob(blobs, { type: "application/octet-stream" });
+
+			statusText.innerText = "🔃 Preparing download...";
+			const objectURL = URL.createObjectURL(mergedBlob);
+			const link = document.createElement("a");
+			link.href = objectURL;
+			link.download = filename;
+			statusText.innerText = "✅ Enjoy!";
+			link.click();
+		});
+	</script>
+</body>
+</html>
