@@ -77,7 +77,7 @@ app.put("/file", raw, async (req, res) => {
 
 	// Send the client this file's download link.
 	res.status(StatusCodes.CREATED).send(
-		`http://localhost:${config.webserverPort}/file/${file.id}/${filename}`
+		`/file/${file.id}/${filename}`
 	);
 
 	// Tell the bot that the upload is complete.
@@ -115,7 +115,7 @@ app.get("/parts/:fileID", async (req, res) => {
 
 	// Bypass CORS lmao
 	const urls = urlRows
-		.map(row => `http://127.0.0.1:${config.corsProxyPort}/${row.url}`);
+		.map(row => `//localhost:${config.corsProxyPort}/${row.url}`);
 
 	const { name: filename } = await db.con.get(
 		"SELECT name FROM files WHERE id = ?",
