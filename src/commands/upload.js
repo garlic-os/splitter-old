@@ -1,5 +1,6 @@
-import { SlashCommandBuilder } from "discord.js";
+import Discord from "discord.js";
 import * as db from "../db.js";
+import * as config from "../../config.js";
 
 
 /**
@@ -26,21 +27,35 @@ function humanFileSize(bytes, dp=1) {
 }
 
 
-export const data = new SlashCommandBuilder()
+export const data = new Discord.SlashCommandBuilder()
 	.setName("upload")
 	.setDescription("Upload a file beyond the Discord file size limit.");
 
 
+/**
+ * 
+ * @param {Discord.ChatInputCommandInteraction} interaction 
+ */
 export async function execute(interaction) {
-	const token = await db.reserveUpload(interaction.id, interaction.user.id);
-	await interaction.reply(
-		`Go to http://localhost:3000/upload?token=${token} to upload your file.`
+	const token = db.generateToken();
+	interaction.reply(
+		`Go to http://localhost:${config.webserverPort}/upload?token=${token} to upload your file.`
 	);
-	db.emitter.once("uploadComplete", async ({ filename, filesize }) => {
-		await channel.send(
-			`<@${interaction.user.id}> posted a file: `
-			`http://localhost:3000/file?=${interaction.id}#${filename}\n`
-			`${humanFileSize(filesize, 2)}`
-		);
+
+	// Add a promise to an object that other modules can access.
+	// The webserver will resolve it when the upload is complete.
+	const uploadComplete = new Promise( (resolve, reject) => {
+		db.pendingUploads[interaction.id] = { resolve, reject };
 	});
+	db.reserveUpload(interaction.id, interaction.user.id, token);
+	const { filename, filesize } = await uploadComplete;
+
+	interaction.channel.send(
+		`<@${interaction.user.id}> posted a file: ` +
+		`http://localhost:${config.webserverPort}/file/${interaction.id}/${filename}\n` +
+		`${humanFileSize(filesize, 2)}`, {
+			allowedMentions: { users: [] },
+		}
+	);
+	delete db.pendingUploads[interaction.id];
 }

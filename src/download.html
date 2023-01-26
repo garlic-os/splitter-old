@@ -10,13 +10,16 @@
 
 	<script>
 		const fileID = window.location.pathname.split("/")[2];
-
 		const statusText = document.getElementById("status");
 
-		async function getPartURLs(fileID) {
+		function getPartURLs(fileID) {
 			statusText.innerText = "📥 Fetching part URLs...";
 			try {
-				return fetch(`/parts/${fileID}`).then(res => res.json());
+				return fetch(`/parts/${fileID}`, {
+					headers: {
+						"X-Requested-With": "XMLHttpRequest",
+					}
+				}).then(res => res.json());
 			} catch (error) {
 				statusText.innerText = "❌ Failed to fetch part URLs. See the console for more details";
 				console.log(error);
@@ -26,12 +29,17 @@
 		// Concatenate the files and download it back as a single file.
 		document.addEventListener("DOMContentLoaded", async () => {
 			// Download the parts.
-			const { filename, urls } = getPartURLs(fileID);
+			const { filename, urls } = await getPartURLs(fileID);
 			urls.sort();
 			const blobPromises = [];
 			for (const [i, url] of urls.entries()) {
 				statusText.innerText = `📥 Downloading part ${i + 1} of ${urls.length}...`;
-				const blobPromise = fetch(url).then(res => res.blob());
+				const blobPromise = fetch(url, {
+					headers: {
+						"X-Requested-With": "XMLHttpRequest",
+						"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+					}
+				}).then(res => res.blob());
 				blobPromises.push(blobPromise);
 			}
 
@@ -40,7 +48,9 @@
 
 			// Merge the blobs and download it.
 			statusText.innerText = "🔃 Merging parts...";
-			const mergedBlob = new Blob(blobs, { type: "application/octet-stream" });
+			const mergedBlob = new Blob(blobs, {
+				type: "application/octet-stream",
+			});
 
 			statusText.innerText = "🔃 Preparing download...";
 			const objectURL = URL.createObjectURL(mergedBlob);

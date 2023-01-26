@@ -9,7 +9,9 @@ const bot = new Discord.Client({
 bot.commands = new Discord.Collection();
 
 
-bot.on(Discord.Events.ClientReady, () => {
+bot.on(Discord.Events.ClientReady, async () => {
+	bot.uploadChannel = await bot.channels.fetch(config.discordUploadChannelID);
+	if (bot.uploadChannel === null) throw new Error("Invalid Discord channel ID");
 	console.log(`Bot logged in as ${bot.user.tag}`);
 });
 
@@ -63,13 +65,9 @@ await bot.login(config.discordBotToken);
 
 export async function uploadToDiscord(buffer, filename) {
 	// Upload the file to Discord and return the URL.
-	const channel = await bot.channels.fetch(config.discordUploadChannelID);
-	// const attachment = new Discord.MessageAttachment(buffer, filename);
-	const message = await channel.send({
-		files: [{
-			attachment: buffer,
-			name: filename
-		}]
+	const attachment = new Discord.AttachmentBuilder(buffer, {
+		name: filename,
 	});
+	const message = await bot.uploadChannel.send({files: [attachment]});
 	return message.attachments.first().url;
 }

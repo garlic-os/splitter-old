@@ -20,72 +20,36 @@
 		const uploadButton = document.getElementById("upload");
 		const statusText = document.getElementById("status");
 
-		async function sendPart(partNumber, totalParts, filename, blob) {
-			const formData = new FormData();
-			formData.append("file", blob, filename);
-			formData.append("partNumber", partNumber);
-			formData.append("totalParts", totalParts);
+		uploadButton.addEventListener("click", async () => {
+			statusText.innerText = `📤 Uploading...`;
+			/**
+			 * @type {File}
+			 */
+			const file = fileInput.files[0];
 			try {
 				const response = await fetch("/file", {
-					method: "PATCH",
+					method: "PUT",
 					headers: {
-						Authorization: token,
+						"Authorization": token,
+						"X-Filename": file.name,
 					},
-					body: formData,
+					body: file,
 				});
 				switch (response.status) {
-					case 202:
-					case 204:
-						// Uploaded successfully
-						return true;
+					case 201:
+						statusText.innerText = `✅ Upload complete!\nDownload here: ${await response.text()}`;
+						break;
 					case 401:
 						statusText.innerText = "❌ Token has expired or is invalid.";
-						return false;
+						break;
 					default:
 						console.error({response});
 						statusText.innerText = "❌ Unexpected response from the server. Check the console for more info.";
 				}
 			} catch (error) {
 				console.error({error});
-				statusText.innerText = "❌ Failed to send part. Check the console for more info.";
-				return false;
+				statusText.innerText = "❌ Failed to upload the file. Check the console for more info.";
 			}
-		}
-
-		uploadButton.addEventListener("click", async () => {
-			/**
-			 * @type {File}
-			 */
-			const file = fileInput.files[0];
-			const buffer = await file.arrayBuffer();
-			const chunkSize = 1024 * 1024 * 8; // 8 MB
-			const totalParts = Math.ceil(buffer.byteLength / chunkSize);
-
-			if (totalParts === 1) {
-				statusText.innerText = "❌ Hey, this file is already 8 MB! Just go upload it straight to Discord!";
-				return;
-			}
-
-			let beg = 0;
-			let end = chunkSize;
-
-			for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
-				statusText.innerText = `📤 Uploading part ${partNumber} of ${totalParts}`;
-				const slice = buffer.slice(beg, end);
-				const blob = new Blob([slice], { type: "application/octet-stream" });
-
-				const success = await sendPart(
-					partNumber,
-					totalParts,
-					file.name,
-					blob
-				);
-				if (!success) return;
-
-				beg = end;
-				end += chunkSize;
-			}
-			statusText.innerText = "✅ Upload complete";
 		});
 	</script>
 </body>

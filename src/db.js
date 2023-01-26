@@ -1,23 +1,20 @@
-import { EventEmitter } from "node:events";
 import * as sqlite3 from "sqlite-async";
 import * as config from "../config.js";
 
 
 export const con = await sqlite3.Database.open(config.databasePath);
 await con.exec(`
-	BEGIN;
 	CREATE TABLE IF NOT EXISTS files (
-		id             INTEGER PRIMARY KEY NOT NULL,
+		id             TEXT    PRIMARY KEY NOT NULL UNIQUE,
 		author_id      INTEGER NOT NULL,
 		upload_token   TEXT    NOT NULL,
 		upload_expiry  INTEGER NOT NULL,
-		name           TEXT DEFAULT NULL
+		name           TEXT    DEFAULT NULL
 	);
 	CREATE TABLE IF NOT EXISTS parts (
-		file_id        INTEGER PRIMARY KEY NOT NULL REFERENCES files(id),
-		url            TEXT    NOT NULL
+		file_id        TEXT NOT NULL REFERENCES files(id),
+		url            TEXT NOT NULL UNIQUE
 	);
-	COMMIT;
 `);
 
 
@@ -26,7 +23,10 @@ process.on("exit", async () => {
 });
 
 
-function generateToken() {
+export const pendingUploads = {};
+
+
+export function generateToken() {
 	const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
 	let result = "";
 	for (let i = 32; i > 0; --i) {
@@ -36,25 +36,11 @@ function generateToken() {
 }
 
 
-export async function reserveUpload(fileID, authorID) {
-	const token = generateToken();
+export function reserveUpload(fileID, authorID, token) {
 	const expiry = Date.now() + config.uploadTokenLifetime;
-	await con.run(`
+	return con.run(`
 		INSERT INTO files
 		(id, author_id, upload_token, upload_expiry)
 		VALUES (?, ?, ?, ?)
 	`, fileID, authorID, token, expiry);
-	return token;
 }
-
-
-export async function checkToken(token) {
-	// Check if the token exists and has not expired.
-	const row = await con.get(
-		"SELECT upload_expiry FROM files WHERE upload_token = ?",
-		token
-	);
-	return row?.upload_expiry > Date.now();
-}
-
-export const emitter = new EventEmitter();
