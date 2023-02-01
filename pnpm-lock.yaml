@@ -1,11 +1,13 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@types/express': ^4.17.16
   cors-anywhere: ^0.4.4
   discord.js: ^14.7.1
   express: ^4.18.2
   http-status-codes: ^2.2.0
   sqlite-async: ^1.2.0
+  typescript: ^4.9.5
 
 dependencies:
   cors-anywhere: 0.4.4
@@ -13,6 +15,10 @@ dependencies:
   express: 4.18.2
   http-status-codes: 2.2.0
   sqlite-async: 1.2.0
+
+devDependencies:
+  '@types/express': 4.17.16
+  typescript: 4.9.5
 
 packages:
 
@@ -121,9 +127,57 @@ packages:
     dev: false
     optional: true
 
+  /@types/body-parser/1.19.2:
+    resolution: {integrity: sha512-ALYone6pm6QmwZoAgeyNksccT9Q4AWZQ6PvfwR37GT6r6FWUPguq6sUmNGSMV2Wr761oQoBxwGGa6DR5o1DC9g==}
+    dependencies:
+      '@types/connect': 3.4.35
+      '@types/node': 18.11.18
+    dev: true
+
+  /@types/connect/3.4.35:
+    resolution: {integrity: sha512-cdeYyv4KWoEgpBISTxWvqYsVy444DOqehiF3fM3ne10AmJ62RSyNkUnxMJXHQWRQQX2eR94m5y1IZyDwBjV9FQ==}
+    dependencies:
+      '@types/node': 18.11.18
+    dev: true
+
+  /@types/express-serve-static-core/4.17.33:
+    resolution: {integrity: sha512-TPBqmR/HRYI3eC2E5hmiivIzv+bidAfXofM+sbonAGvyDhySGw9/PQZFt2BLOrjUUR++4eJVpx6KnLQK1Fk9tA==}
+    dependencies:
+      '@types/node': 18.11.18
+      '@types/qs': 6.9.7
+      '@types/range-parser': 1.2.4
+    dev: true
+
+  /@types/express/4.17.16:
+    resolution: {integrity: sha512-LkKpqRZ7zqXJuvoELakaFYuETHjZkSol8EV6cNnyishutDBCCdv6+dsKPbKkCcIk57qRphOLY5sEgClw1bO3gA==}
+    dependencies:
+      '@types/body-parser': 1.19.2
+      '@types/express-serve-static-core': 4.17.33
+      '@types/qs': 6.9.7
+      '@types/serve-static': 1.15.0
+    dev: true
+
+  /@types/mime/3.0.1:
+    resolution: {integrity: sha512-Y4XFY5VJAuw0FgAqPNd6NNoV44jbq9Bz2L7Rh/J6jLTiHBSBJa9fxqQIvkIld4GsoDOcCbvzOUAbLPsSKKg+uA==}
+    dev: true
+
   /@types/node/18.11.18:
     resolution: {integrity: sha512-DHQpWGjyQKSHj3ebjFI/wRKcqQcdR+MoFBygntYOZytCqNfkd2ZC4ARDJ2DQqhjH5p85Nnd3jhUJIXrszFX/JA==}
-    dev: false
+
+  /@types/qs/6.9.7:
+    resolution: {integrity: sha512-FGa1F62FT09qcrueBA6qYTrJPVDzah9a+493+o2PCXsesWHIn27G98TsSMs3WPNbZIEj4+VJf6saSFpvD+3Zsw==}
+    dev: true
+
+  /@types/range-parser/1.2.4:
+    resolution: {integrity: sha512-EEhsLsD6UsDM1yFhAvy0Cjr6VwmpMWqFBCb9w07wVugF7w9nfajxLuVmngTIpgS6svCnm6Vaw+MZhoDCKnOfsw==}
+    dev: true
+
+  /@types/serve-static/1.15.0:
+    resolution: {integrity: sha512-z5xyF6uh8CbjAu9760KDKsH2FcDxZ2tFCsA4HIMWE6IkiYMXfVoa+4f9KX+FN0ZLsaMw1WNG2ETLA6N+/YA+cg==}
+    dependencies:
+      '@types/mime': 3.0.1
+      '@types/node': 18.11.18
+    dev: true
 
   /@types/ws/8.5.4:
     resolution: {integrity: sha512-zdQDHKUgcX/zBc4GrwsE/7dVdAD8JR4EuiAXiiUhhfyIJXXb2+PrGshFyeXWQPMmmZ2XxgaqclgpIC7eTXc1mg==}
@@ -1339,6 +1393,12 @@ packages:
       media-typer: 0.3.0
       mime-types: 2.1.35
     dev: false
+
+  /typescript/4.9.5:
+    resolution: {integrity: sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
 
   /undici/5.15.0:
     resolution: {integrity: sha512-wCAZJDyjw9Myv+Ay62LAoB+hZLPW9SmKbQkbHIhMw/acKSlpn7WohdMUc/Vd4j1iSMBO0hWwU8mjB7a5p5bl8g==}

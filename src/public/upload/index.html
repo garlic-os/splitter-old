@@ -4,7 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" href="/common.css">
-	<title>Splitter | Upload</title>
+	<title>Upload | Splitter</title>
 </head>
 <body>
 	<input type="file" id="file" />
@@ -47,7 +47,7 @@
 						statusText.innerText = "❌ Unexpected response from the server. Check the console for more info.";
 				}
 			} catch (error) {
-				console.error({error});
+				console.error(error);
 				statusText.innerText = "❌ Failed to upload the file. Check the console for more info.";
 			}
 		});
