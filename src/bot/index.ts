@@ -1,17 +1,38 @@
-import fs from "node:fs/promises";
-import Discord from "discord.js";
+import * as fs from "node:fs/promises";
+import * as Discord from "discord.js";
 import * as config from "../config.js";
 
 
-const bot = new Discord.Client({
+interface DiscordSlashCommandHandler {
+	data: Discord.ApplicationCommandData;
+	execute(interaction: Discord.CommandInteraction): Promise<void>;
+}
+
+
+class SplitterBot extends Discord.Client {
+	commands: Discord.Collection<string, DiscordSlashCommandHandler>;
+	uploadChannel: Discord.TextChannel | null;
+
+	constructor(options: Discord.ClientOptions) {
+		super(options);
+		this.commands = new Discord.Collection();
+		this.uploadChannel = null;
+	}
+}
+
+
+const bot = new SplitterBot({
 	intents: [Discord.GatewayIntentBits.Guilds],
 });
-bot.commands = new Discord.Collection();
 
 
 bot.on(Discord.Events.ClientReady, async () => {
-	bot.uploadChannel = await bot.channels.fetch(config.discordUploadChannelID);
-	if (bot.uploadChannel === null) throw new Error("Invalid Discord channel ID");
+	const channel = await bot.channels.fetch(config.discordUploadChannelID);
+	if (channel instanceof Discord.TextChannel) {
+		bot.uploadChannel = channel;
+	} else {
+		throw new Error("Invalid Discord channel ID");
+	}
 	console.log(`Bot logged in as ${bot.user.tag}`);
 });
 
@@ -42,7 +63,7 @@ process.on("exit", () => {
 });
 
 
-async function loadCommands() {
+async function loadCommands(): Promise<void> {
 	const commandsDir = new URL("commands", import.meta.url);
 	const commandPaths = (await fs.readdir(commandsDir)).filter( (file) => {
 		return file.endsWith(".js");
@@ -63,7 +84,7 @@ await loadCommands();
 await bot.login(config.discordBotToken);
 
 
-export async function uploadToDiscord(buffer, filename) {
+export async function uploadToDiscord(buffer: Buffer, filename: string): Promise<string> {
 	// Upload the file to Discord and return the URL.
 	const attachment = new Discord.AttachmentBuilder(buffer, {
 		name: filename,

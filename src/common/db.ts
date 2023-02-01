@@ -2,6 +2,21 @@ import * as sqlite3 from "sqlite-async";
 import * as config from "../config.js";
 
 
+export interface UploadReport {
+	filename: string;
+	filesize: number;
+}
+
+export interface PendingUpload {
+	resolve: (report: UploadReport) => void;
+	reject: (err: Error) => void;
+};
+
+export interface PendingUploads {
+	[key: string]: PendingUpload;
+}
+
+
 export const con = await sqlite3.Database.open(config.databasePath);
 await con.exec(`
 	CREATE TABLE IF NOT EXISTS files (
@@ -23,10 +38,10 @@ process.on("exit", async () => {
 });
 
 
-export const pendingUploads = {};
+export const pendingUploads: PendingUploads = {};
 
 
-export function generateToken() {
+export function generateToken(): string {
 	const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
 	let result = "";
 	for (let i = 32; i > 0; --i) {
@@ -36,7 +51,7 @@ export function generateToken() {
 }
 
 
-export function reserveUpload(fileID, authorID, token) {
+export function reserveUpload(fileID: string, authorID: string, token: string): Promise<void> {
 	const expiry = Date.now() + config.uploadTokenLifetime;
 	return con.run(`
 		INSERT INTO files

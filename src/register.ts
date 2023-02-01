@@ -1,6 +1,6 @@
-import fs from "node:fs/promises";
-import Discord from "discord.js";
-import * as config from "../config.js";
+import * as fs from "node:fs/promises";
+import * as Discord from "discord.js";
+import * as config from "./config.js";
 
 const commands = [];
 const commandsDir = new URL("commands", import.meta.url);
@@ -29,4 +29,11 @@ const data = await rest.put(
 	{ body: commands },
 );
 
-console.log(`✅ Successfully registered ${data.length} application (/) commands.`);
+if (data instanceof Array) {
+	// If the data is an array, it is an array of command objects
+	// that were successfully registered
+	console.log(`✅ Successfully registered ${data.length} application (/) commands.`);
+} else {
+	// If the data is not an array, it is an error object
+	console.error(`❌ Failed to register application (/) commands: ${data}`);
+}

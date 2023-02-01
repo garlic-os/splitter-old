@@ -1,6 +1,6 @@
 import * as config from "../config.js";
-import * as bot from "./bot.js";
-import * as db from "./db.js";
+import * as bot from "../bot";
+import * as db from "../common/db.js";
 
 
 /**
@@ -10,27 +10,37 @@ import * as db from "./db.js";
  * uploaded to Discord.
  */
 export default class PartUploader {
-	constructor(fileID, filename) {
+	fileID: string;
+	filename: string;
+	part: Buffer;
+	pendingUploads: Promise<void>[];
+	partNumber: number;
+	index: number;
+	bytesUploaded: number;
+
+	constructor(fileID: string, filename: string) {
 		this.fileID = fileID;
 		this.filename = filename;
 		this.part = Buffer.alloc(config.partSize);
 		this.pendingUploads = [];
 		this.partNumber = 0;
 		this.index = 0;
+		this.bytesUploaded = 0;
 	}
 
-	async _uploadPart(part, partNumber) {
+	async _uploadPart(part: Buffer, partNumber: number): Promise<void> {
 		const url = await bot.uploadToDiscord(
 			part,
 			`${this.filename}.part${partNumber}`
 		);
 		await db.con.run(
 			"INSERT INTO parts (file_id, url) VALUES (?, ?)",
-			fileID, url
+			this.fileID, url
 		);
+		this.bytesUploaded += part.byteLength;
 	}
 
-	async _processPart(subPart) {
+	async _processPart(subPart: Buffer): Promise<void> {
 		// for (const byte of subPart) {
 		// 	this.part[this.index] = byte;
 		// 	this.index++;
@@ -58,11 +68,11 @@ export default class PartUploader {
 		}
 	}
 
-	consume(subPart) {
+	consume(subPart: Buffer): void {
 		this.pendingUploads.push(this._processPart(subPart));
 	}
 
-	async uploadsComplete() {
+	async uploadsComplete(): Promise<void> {
 		await Promise.all(this.pendingUploads);
 	}
 }

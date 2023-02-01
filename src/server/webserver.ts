@@ -1,8 +1,8 @@
-import path from "node:path";
-import express from "express";
+import * as path from "node:path";
+import * as express from "express";
 import { StatusCodes } from "http-status-codes";
 import * as config from "../config.js";
-import * as db from "./db.js";
+import * as db from "../common/db.js";
 import PartUploader from "./part-uploader.js";
 
 
@@ -33,7 +33,8 @@ const raw = express.raw({
 app.put("/file", raw, async (req, res) => {
 // app.put("/file", async (req, res) => {
 	const token = req.headers["authorization"];
-	const filename = req.headers["x-filename"]?.replaceAll(" ", "_");
+	const filename = (req.headers["x-filename"] as string | null)
+		?.replaceAll(" ", "_");
 
 	const file = await db.con.get(
 		"SELECT id, upload_expiry FROM files WHERE upload_token = ?",
@@ -73,7 +74,7 @@ app.put("/file", raw, async (req, res) => {
 		// Tell the bot that the upload is complete.
 		db.pendingUploads[file.id].resolve({
 			filename: filename,
-			filesize: req.headers["content-length"],
+			filesize: uploader.bytesUploaded,
 		});
 
 		// Expire the token.
@@ -112,7 +113,7 @@ app.get("/parts/:fileID", async (req, res) => {
 
 	// Bypass CORS lmao
 	const urls = urlRows
-		.map(row => `//localhost:${config.corsProxyPort}/${row.url}`);
+		.map((row: any) => `//localhost:${config.corsProxyPort}/${row.url}`);
 
 	const { name: filename } = await db.con.get(
 		"SELECT name FROM files WHERE id = ?",
