@@ -3,6 +3,7 @@
 
 # Secrets
 config.js
+config.ts
 *.db
 
 # Logs
