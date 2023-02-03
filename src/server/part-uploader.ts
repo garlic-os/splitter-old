@@ -1,6 +1,6 @@
 import * as config from "../config.js";
-import * as bot from "../bot";
-import * as db from "../common/db.js";
+import * as bot from "../bot/index.js";
+import * as db from "../db/index.js";
 
 
 /**
@@ -28,44 +28,43 @@ export default class PartUploader {
 		this.bytesUploaded = 0;
 	}
 
-	async _uploadPart(part: Buffer, partNumber: number): Promise<void> {
+	async _uploadPart(): Promise<void> {
 		const url = await bot.uploadToDiscord(
-			part,
-			`${this.filename}.part${partNumber}`
+			this.part,
+			`${this.filename}.part${this.partNumber}`
 		);
-		await db.con.run(
-			"INSERT INTO parts (file_id, url) VALUES (?, ?)",
-			this.fileID, url
-		);
-		this.bytesUploaded += part.byteLength;
+		db.con
+			.prepare("INSERT INTO parts (file_id, url) VALUES (?, ?)")
+			.run(this.fileID, url);
+		this.bytesUploaded += this.part.byteLength;
 	}
 
 	async _processPart(subPart: Buffer): Promise<void> {
-		// for (const byte of subPart) {
-		// 	this.part[this.index] = byte;
-		// 	this.index++;
-		// 	if (this.index === this.part.byteLength) {
-		// 		this._uploadPart(this.part, this.partNumber);
-		// 		this.part.fill(0);
-		// 		this.index = 0;
-		// 		this.partNumber++;
-		// 	}
-		// }
-
-		const bytesLeft = this.part.byteLength - this.index;
-		if (subPart.byteLength <= bytesLeft) {
-			subPart.copy(this.part, this.index);
-			this.index += subPart.byteLength;
-		} else {
-			subPart.copy(this.part, this.index, 0, bytesLeft);
-			this._uploadPart(this.part, this.partNumber);
-			this.part.fill(0);
-			this.index = 0;
-			this.partNumber++;
-
-			subPart.copy(this.part, this.index, bytesLeft);
-			this.index += subPart.byteLength - bytesLeft;
+		for (const byte of subPart) {
+			this.part[this.index] = byte;
+			this.index++;
+			if (this.index === this.part.byteLength) {
+				await this._uploadPart();
+				this.part.fill(0);
+				this.index = 0;
+				this.partNumber++;
+			}
 		}
+
+		// const bytesLeft = this.part.byteLength - this.index;
+		// if (subPart.byteLength <= bytesLeft) {
+		// 	subPart.copy(this.part, this.index);
+		// 	this.index += subPart.byteLength;
+		// } else {
+		// 	subPart.copy(this.part, this.index, 0, bytesLeft);
+		// 	await this._uploadPart(this.part, this.partNumber);
+		// 	this.part.fill(0);
+		// 	this.index = 0;
+		// 	this.partNumber++;
+
+		// 	subPart.copy(this.part, this.index, bytesLeft);
+		// 	this.index += subPart.byteLength - bytesLeft;
+		// }
 	}
 
 	consume(subPart: Buffer): void {

@@ -1,0 +1,13 @@
+:root {
+	--white: #DCDCDD;
+	--gray: #C5C3C6;
+	--green: #04622E;
+	--blue: #1985A1;
+	--purple: #7F2982;
+}
+
+html, body {
+	height: 100%;
+	margin: 0;
+	background-color: var(--white);
+}

@@ -1,5 +1,5 @@
-import * as fs from "node:fs/promises";
-import * as Discord from "discord.js";
+import fs from "node:fs/promises";
+import Discord from "discord.js";
 import * as config from "../config.js";
 
 
@@ -12,11 +12,15 @@ interface DiscordSlashCommandHandler {
 class SplitterBot extends Discord.Client {
 	commands: Discord.Collection<string, DiscordSlashCommandHandler>;
 	uploadChannel: Discord.TextChannel | null;
+	ready: Promise<void>;
 
 	constructor(options: Discord.ClientOptions) {
 		super(options);
 		this.commands = new Discord.Collection();
 		this.uploadChannel = null;
+		this.ready = new Promise((resolve) => {
+			this.once(Discord.Events.ClientReady, () => resolve());
+		});
 	}
 }
 
@@ -32,6 +36,9 @@ bot.on(Discord.Events.ClientReady, async () => {
 		bot.uploadChannel = channel;
 	} else {
 		throw new Error("Invalid Discord channel ID");
+	}
+	if (!bot.user) {
+		throw new Error("Bot user is null");
 	}
 	console.log(`Bot logged in as ${bot.user.tag}`);
 });
@@ -85,10 +92,19 @@ await bot.login(config.discordBotToken);
 
 
 export async function uploadToDiscord(buffer: Buffer, filename: string): Promise<string> {
-	// Upload the file to Discord and return the URL.
+	await bot.ready;  // Ensure uploadChannel has been set.
+
+	// Upload the file to Discord.
 	const attachment = new Discord.AttachmentBuilder(buffer, {
 		name: filename,
 	});
-	const message = await bot.uploadChannel.send({files: [attachment]});
-	return message.attachments.first().url;
+	const message = await (bot.uploadChannel as Discord.TextChannel)
+		.send({files: [attachment]});
+
+	// Return the URL of the uploaded file.
+	const sentAttachment = message.attachments.first();
+	if (!sentAttachment) {
+		throw new Error("No attachment found in message");
+	}
+	return sentAttachment.url;
 }

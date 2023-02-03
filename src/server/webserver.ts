@@ -1,18 +1,18 @@
-import * as path from "node:path";
-import * as express from "express";
-import { StatusCodes } from "http-status-codes";
+import path from "node:path";
+import express from "express";
+import StatusCodes from "http-status-codes";
 import * as config from "../config.js";
-import * as db from "../common/db.js";
-import PartUploader from "./part-uploader.js";
+import * as db from "../db/index.js";
+import * as bot from "../bot/index.js";
 
 
 const app = express();
-app.use(express.static("./src/public"));
+app.use(express.static("./dist/web/public"));
 app.use(express.json());
 
 
 app.get("/file/*", (_, res) => {
-	res.sendFile(path.resolve("./src/file.html"));
+	res.sendFile(path.resolve("./dist/web/download.html"));
 });
 
 
@@ -21,70 +21,56 @@ const raw = express.raw({
 	limit: config.fileSizeLimit,
 });
 /**
- * Have the Discord bot upload a part of a file to Discord, then store the
- * URL of the file in Discord in the database.
- * The client calls this endpoint multiple times to upload every parts of
- * the file.
- * NB: This endpoint does NOT check if the parts are in order; that is up to the
- * client.
+ * Receive a file and have the Discord bot upload it to Discord in parts. 
+ * Then store the URLs to the parts that Discord returns.
  * Requires authorization. Users receive a token per file when they reserve an
  * upload.
  */
-app.put("/file", raw, async (req, res) => {
-// app.put("/file", async (req, res) => {
+app.put("/file", async (req, res) => {
 	const token = req.headers["authorization"];
-	const filename = (req.headers["x-filename"] as string | null)
+	const filename = (req.headers["x-filename"] as string | undefined)
 		?.replaceAll(" ", "_");
 
-	const file = await db.con.get(
-		"SELECT id, upload_expiry FROM files WHERE upload_token = ?",
-		token
-	);
+	if (!filename) return res.sendStatus(StatusCodes.BAD_REQUEST);
+
+	const file = db.getFileByToken(token);
 
 	// Check if the token exists and has not expired.
 	if (!token || !file || file.upload_expiry < Date.now()) {
 		return res.sendStatus(StatusCodes.UNAUTHORIZED);
 	}
 
-	if (!filename) return res.sendStatus(StatusCodes.BAD_REQUEST);
-
 	// Set the file's name in the database.
-	db.con.run(
-		"UPDATE files SET name = ? WHERE id = ?",
-		filename, file.id
-	);
+	db.setFileName(file.id, filename);
 
 	// Upload the file to Discord in parts.
-	const uploader = new PartUploader(file.id, filename);
-	req.on("data", (data) => {
-		uploader.consume(data);
-	});
-
-	req.on("end", async () => {
-		// Wait for all the parts to be uploaded.
-		// This is necessary because the data handler is async so the end event
-		// fires almost right away.
-		await uploader.uploadsComplete();
-
-		// Send the client this file's download link.
-		res.status(StatusCodes.CREATED).send(
-			`/file/${file.id}/${filename}`
+	let partNumber = 0;
+	let bytesRead = 0;
+	let chunk: Buffer | null = null;
+	while (null !== (chunk = req.read(config.partSize))) {
+		const url = await bot.uploadToDiscord(
+			chunk,
+			`${filename}.part${partNumber++}`
 		);
-
-		// Tell the bot that the upload is complete.
-		db.pendingUploads[file.id].resolve({
-			filename: filename,
-			filesize: uploader.bytesUploaded,
+		db.addPart({
+			file_id: file.id,
+			url: url,
 		});
+		bytesRead += chunk.byteLength;
+	}
 
-		// Expire the token.
-		db.con.run("UPDATE files SET upload_expiry = 0 WHERE id = ?", file.id);
+	// Send the client this file's download link.
+	res.status(StatusCodes.CREATED).send(
+		`/file/${file.id}/${filename}`
+	);
+
+	// Tell the bot that the upload is complete.
+	db.pendingUploads[file.id.toString()].resolve({
+		filename: filename,
+		filesize: bytesRead,
 	});
 
-	req.on("error", (err) => {
-		console.error(err);
-		res.sendStatus(StatusCodes.INTERNAL_SERVER_ERROR);
-	});
+	db.disableUpload(file.id);
 });
 
 
@@ -102,24 +88,15 @@ app.put("/file", raw, async (req, res) => {
 /**
  * Returns a file's name and the list of URLs to its parts.
  */
-app.get("/parts/:fileID", async (req, res) => {
-	const fileID = req.params.fileID;
-	const urlRows = await db.con.all(
-		"SELECT url FROM parts WHERE file_id = ?",
-		fileID
-	);
-
-	if (urlRows.length === 0) return res.sendStatus(StatusCodes.NOT_FOUND);
+app.get("/parts/:fileID", (req, res) => {
+	const fileID = BigInt(req.params.fileID);
 
 	// Bypass CORS lmao
-	const urls = urlRows
-		.map((row: any) => `//localhost:${config.corsProxyPort}/${row.url}`);
+	const urls = db.getPartURLs(fileID)
+		.map(url => `//localhost:${config.corsProxyPort}/${url}`);
+	if (urls.length === 0) return res.sendStatus(StatusCodes.NOT_FOUND);
 
-	const { name: filename } = await db.con.get(
-		"SELECT name FROM files WHERE id = ?",
-		fileID
-	);
-
+	const filename = db.getFilename(fileID);
 	res.json({ filename, urls });
 });
 

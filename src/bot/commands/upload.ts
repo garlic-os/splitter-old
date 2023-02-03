@@ -1,5 +1,5 @@
-import * as Discord from "discord.js";
-import * as db from "../../common/db.js";
+import Discord from "discord.js";
+import * as db from "../../db/index.js";
 import * as config from "../../config.js";
 
 
@@ -37,7 +37,11 @@ export async function execute(interaction: Discord.ChatInputCommandInteraction):
 	const uploadComplete: Promise<db.UploadReport> = new Promise( (resolve, reject) => {
 		db.pendingUploads[interaction.id] = { resolve, reject };
 	});
-	db.reserveUpload(interaction.id, interaction.user.id, token);
+	db.reserveUpload(
+		BigInt(interaction.id),
+		BigInt(interaction.user.id),
+		token
+	);
 	const { filename, filesize } = await uploadComplete;
 
 	let mention: string;
