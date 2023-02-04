@@ -10,7 +10,7 @@ import * as db from "../db/index.js";
  * uploaded to Discord.
  */
 export default class PartUploader {
-	fileID: string;
+	fileID: bigint;
 	filename: string;
 	part: Buffer;
 	pendingUploads: Promise<void>[];
@@ -18,7 +18,7 @@ export default class PartUploader {
 	index: number;
 	bytesUploaded: number;
 
-	constructor(fileID: string, filename: string) {
+	constructor(fileID: bigint, filename: string) {
 		this.fileID = fileID;
 		this.filename = filename;
 		this.part = Buffer.alloc(config.partSize);
@@ -33,9 +33,7 @@ export default class PartUploader {
 			this.part,
 			`${this.filename}.part${this.partNumber}`
 		);
-		db.con
-			.prepare("INSERT INTO parts (file_id, url) VALUES (?, ?)")
-			.run(this.fileID, url);
+		db.addPart(this.fileID, url);
 		this.bytesUploaded += this.part.byteLength;
 	}
 
