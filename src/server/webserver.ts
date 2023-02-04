@@ -52,10 +52,7 @@ app.put("/file", async (req, res) => {
 			chunk,
 			`${filename}.part${partNumber++}`
 		);
-		db.addPart({
-			file_id: file.id,
-			url: url,
-		});
+		db.addPart(file.id, url);
 		bytesRead += chunk.byteLength;
 	}
 

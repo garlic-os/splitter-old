@@ -80,8 +80,8 @@ export function setFileName(id: bigint, name: string): void {
 }
 
 
-export function addPart(part: PartEntry): void {
-	statements.addPart.run(part.file_id, part.url);
+export function addPart(fileID: bigint, url: string): void {
+	statements.addPart.run(fileID, url);
 }
 
 
@@ -107,13 +107,8 @@ export function disableUpload(id: bigint): void {
 }
 
 
-export function addFile(file: Omit<FileEntry, "name">): void {
-	statements.addFile.run(
-		file.id,
-		file.author_id,
-		file.upload_token,
-		file.upload_expiry
-	);
+function addFile(fileID: bigint, authorID: bigint, token: string, expiry: number): void {
+	statements.addFile.run(fileID, authorID, token, expiry);
 }
 
 
@@ -129,10 +124,5 @@ export function generateToken(): string {
 
 export function reserveUpload(fileID: bigint, authorID: bigint, token: string) {
 	const expiry = Date.now() + config.uploadTokenLifetime;
-	addFile({
-		id: fileID,
-		author_id: authorID,
-		upload_token: token,
-		upload_expiry: expiry
-	});
+	addFile(fileID, authorID, token, expiry);
 }
