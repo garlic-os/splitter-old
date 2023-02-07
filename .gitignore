@@ -5,6 +5,8 @@
 config.js
 config.ts
 *.db
+*.db-shm
+*.db-wal
 
 # Logs
 logs
