@@ -26,14 +26,15 @@
 			 * @type {File}
 			 */
 			const file = fileInput.files[0];
+			const formData = new FormData();
+			formData.append("file", file);
 			try {
 				const response = await fetch("/file", {
 					method: "PUT",
 					headers: {
 						"Authorization": token,
-						"X-Filename": file.name,
 					},
-					body: file,
+					body: formData,
 				});
 				switch (response.status) {
 					case 201:
