@@ -1,3 +1,4 @@
+import type { RunResult } from "better-sqlite3";
 import Database from "better-sqlite3";
 import * as Config from  "../config.js";
 
@@ -49,63 +50,60 @@ process.on("exit", () => {
 });
 
 
-
-
-const statements = {
-	setFileName: con.prepare("UPDATE files SET name = ? WHERE id = ?"),
-	addPart: con.prepare("INSERT INTO parts (file_id, url) VALUES (?, ?)"),
-	getPartURLs: con.prepare("SELECT url FROM parts WHERE file_id = ?"),
-	getFilename: con.prepare("SELECT name FROM files WHERE id = ?"),
-	getFileByToken: con.prepare(`
-		SELECT id, upload_expiry FROM files WHERE upload_token = ?
-	`),
-	disableUpload: con.prepare(`
-		UPDATE files SET upload_expiry = 0 WHERE id = ?
-	`),
-	addFile: con.prepare(`
-		INSERT INTO files
-		(id, author_id, upload_token, upload_expiry)
-		VALUES (?, ?, ?, ?)
-	`),
-};
 // Would use a plain object but BigInt keys aren't supported
 export const pendingUploads = new Map<bigint, PendingUpload>();
 
 
-export function setFileName(id: bigint, name: string): void {
-	statements.setFileName.run(name, id);
+setFileName.stmt = con.prepare("UPDATE files SET name = ? WHERE id = ?");
+export function setFileName(id: bigint, name: string): RunResult {
+	return setFileName.stmt.run(name, id);
 }
 
 
-export function addPart(fileID: bigint, url: string): void {
-	statements.addPart.run(fileID, url);
+addPart.stmt = con.prepare("INSERT INTO parts (file_id, url) VALUES (?, ?)");
+export function addPart(fileID: bigint, url: string): RunResult {
+	return addPart.stmt.run(fileID, url);
+}
+
+getPartURLs.stmt = con.prepare("SELECT url FROM parts WHERE file_id = ?").pluck();
+export function getPartURLs(fileID: bigint): string[] | null {
+	return getPartURLs.stmt.all(fileID);
 }
 
 
-export function getPartURLs(fileID: bigint): string[] {
-	return statements.getPartURLs
-		.all(fileID)
-		.map((row: Pick<PartEntry, "url">) => row.url);
+getFileName.stmt = con.prepare("SELECT name FROM files WHERE id = ?").pluck();
+export function getFileName(id: bigint): string {
+	return getFileName.stmt.get(id);
 }
 
 
-export function getFilename(id: bigint): string {
-	return statements.getFilename.get(id).name;
+getFileByToken.stmt = con.prepare(`
+	SELECT id, upload_expiry FROM files WHERE upload_token = ?
+`);
+export function getFileByToken(
+	token: string | undefined
+): Pick<FileEntry, "id" | "upload_expiry"> | null {
+	return getFileByToken.stmt.get(token);
 }
 
 
-export function getFileByToken(token: string | undefined): Pick<FileEntry, "id" | "upload_expiry"> | null {
-	return statements.getFileByToken.get(token);
+disableUpload.stmt = con.prepare(`
+	UPDATE files SET upload_expiry = 0 WHERE id = ?
+`);
+export function disableUpload(id: bigint): RunResult {
+	return disableUpload.stmt.run(id);
 }
 
 
-export function disableUpload(id: bigint): void {
-	statements.disableUpload.run(id);
-}
-
-
-function addFile(fileID: bigint, authorID: bigint, token: string, expiry: number): void {
-	statements.addFile.run(fileID, authorID, token, expiry);
+addFile.stmt = con.prepare(`
+	INSERT INTO files
+	(id, author_id, upload_token, upload_expiry)
+	VALUES (?, ?, ?, ?)
+`);
+function addFile(
+	fileID: bigint, authorID: bigint, token: string, expiry: number
+): RunResult {
+	return addFile.stmt.run(fileID, authorID, token, expiry);
 }
 
 
@@ -119,7 +117,9 @@ export function generateToken(): string {
 }
 
 
-export function reserveUpload(fileID: bigint, authorID: bigint, token: string) {
-	addFile(fileID, authorID, token, expiry);
+export function reserveUpload(
+	fileID: bigint, authorID: bigint, token: string
+): RunResult {
 	const expiry = Date.now() + Config.uploadTokenLifetime;
+	return addFile(fileID, authorID, token, expiry);
 }
