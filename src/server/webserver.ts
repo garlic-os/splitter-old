@@ -9,7 +9,12 @@ import * as DB from "../db/index.js";
 import * as bot from "../bot/index.js";
 
 
-const app = fastify();
+const app = fastify({
+	ignoreDuplicateSlashes: true,
+	ignoreTrailingSlash: true,
+	logger: true,
+});
+app.register(import("@fastify/multipart"));
 app.register(import("@fastify/static"), {
 	root: path.resolve("./dist/web/public")
   })
