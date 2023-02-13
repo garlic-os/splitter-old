@@ -28,6 +28,7 @@ export interface PartEntry {
 
 const con = new Database(Config.databasePath);
 con.pragma("journal_mode = WAL");
+con.defaultSafeIntegers(true);  // Enable BigInt support
 con.exec(`
 	CREATE TABLE IF NOT EXISTS files (
 		id             INTEGER PRIMARY KEY NOT NULL UNIQUE,
