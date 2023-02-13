@@ -12,11 +12,6 @@ export interface PendingUpload {
 	reject: (err: Error) => void;
 };
 
-export interface PendingUploads {
-	[key: string]: PendingUpload;
-};
-
-
 export interface FileEntry {
 	id: bigint;
 	author_id: bigint;
@@ -53,7 +48,6 @@ process.on("exit", () => {
 });
 
 
-export const pendingUploads: PendingUploads = {};
 
 
 const statements = {
@@ -73,6 +67,8 @@ const statements = {
 		VALUES (?, ?, ?, ?)
 	`),
 };
+// Would use a plain object but BigInt keys aren't supported
+export const pendingUploads = new Map<bigint, PendingUpload>();
 
 
 export function setFileName(id: bigint, name: string): void {

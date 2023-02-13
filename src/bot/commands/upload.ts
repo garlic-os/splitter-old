@@ -62,5 +62,5 @@ export async function execute(interaction: Discord.ChatInputCommandInteraction):
 			users: []
 		},
 	});
-	delete db.pendingUploads[interaction.id];
+	DB.pendingUploads.delete(fileID);
 }
