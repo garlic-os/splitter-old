@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import * as Discord from "discord.js";
-import * as config from "./config.js";
+import * as Config from "./config.js";
 
 const commands = [];
 const commandsDir = new URL("commands", import.meta.url);
@@ -17,7 +17,7 @@ for (const file of commandPaths) {
 
 // Construct and prepare an instance of the REST module.
 const rest = new Discord.REST({ version: "10" });
-rest.setToken(config.discordBotToken);
+rest.setToken(Config.discordBotToken);
 
 // Deploy the commands.
 console.log(`🔃 Registering ${commands.length} application (/) commands...`);
@@ -25,7 +25,7 @@ console.log(`🔃 Registering ${commands.length} application (/) commands...`);
 // The put method is used to fully refresh all commands in the guild
 // with the current set.
 const data = await rest.put(
-	Discord.Routes.applicationCommands(config.discordClientID),
+	Discord.Routes.applicationCommands(Config.discordClientID),
 	{ body: commands },
 );
 

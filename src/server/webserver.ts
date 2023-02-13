@@ -4,8 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import fastify from "fastify";
 import StatusCodes from "http-status-codes";
-import * as config from "../config.js";
-import * as db from "../db/index.js";
+import * as Config from "../config.js";
+import * as DB from "../db/index.js";
 import * as bot from "../bot/index.js";
 
 

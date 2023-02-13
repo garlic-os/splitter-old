@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import * as config from "../config.js";
+import * as Config from  "../config.js";
 
 
 export interface UploadReport {
@@ -26,7 +26,7 @@ export interface PartEntry {
 }
 
 
-const con = new Database(config.databasePath);
+const con = new Database(Config.databasePath);
 con.pragma("journal_mode = WAL");
 con.exec(`
 	CREATE TABLE IF NOT EXISTS files (
@@ -119,6 +119,6 @@ export function generateToken(): string {
 
 
 export function reserveUpload(fileID: bigint, authorID: bigint, token: string) {
-	const expiry = Date.now() + config.uploadTokenLifetime;
 	addFile(fileID, authorID, token, expiry);
+	const expiry = Date.now() + Config.uploadTokenLifetime;
 }

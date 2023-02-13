@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import Discord from "discord.js";
-import * as config from "../config.js";
+import * as Config from "../config.js";
 
 
 interface DiscordSlashCommandHandler {
@@ -31,7 +31,7 @@ const bot = new SplitterBot({
 
 
 bot.on(Discord.Events.ClientReady, async () => {
-	const channel = await bot.channels.fetch(config.discordUploadChannelID);
+	const channel = await bot.channels.fetch(Config.discordUploadChannelID);
 	if (channel instanceof Discord.TextChannel) {
 		bot.uploadChannel = channel;
 	} else {
@@ -88,7 +88,7 @@ async function loadCommands(): Promise<void> {
 
 
 await loadCommands();
-await bot.login(config.discordBotToken);
+await bot.login(Config.discordBotToken);
 
 
 export async function uploadToDiscord(buffer: Buffer, filename: string): Promise<string> {

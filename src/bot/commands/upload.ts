@@ -1,6 +1,6 @@
 import Discord from "discord.js";
-import * as db from "../../db/index.js";
-import * as config from "../../config.js";
+import * as DB from "../../db/index.js";
+import * as Config from "../../config.js";
 
 
 // Format a number of bytes as human-readable text.
@@ -27,18 +27,22 @@ export const data = new Discord.SlashCommandBuilder()
 
 
 export async function execute(interaction: Discord.ChatInputCommandInteraction): Promise<void> {
-	const token = db.generateToken();
+	const token = DB.generateToken();
 	interaction.reply(
-		`Go to http://localhost:${config.webserverPort}/upload?token=${token} to upload your file.`
+		`Go to http://localhost:${Config.webserverPort}/upload?token=${token} to upload your file.`
 	);
+
+	const fileID = BigInt(interaction.id);
+	console.log("New upload request:", fileID);
+	console.log("Interaction ID:", interaction.id);
 
 	// Add a promise to an object that other modules can access.
 	// The webserver will resolve it when the upload is complete.
-	const uploadComplete: Promise<db.UploadReport> = new Promise( (resolve, reject) => {
-		db.pendingUploads[interaction.id] = { resolve, reject };
+	const uploadComplete: Promise<DB.UploadReport> = new Promise( (resolve, reject) => {
+		DB.pendingUploads.set(fileID, { resolve, reject });
 	});
-	db.reserveUpload(
-		BigInt(interaction.id),
+	DB.reserveUpload(
+		fileID,
 		BigInt(interaction.user.id),
 		token
 	);
@@ -56,7 +60,7 @@ export async function execute(interaction: Discord.ChatInputCommandInteraction):
 
 	channel.send({
 		content: `${mention} posted a file: ` +
-				`http://localhost:${config.webserverPort}/file/${interaction.id}/${filename}\n` +
+				`http://localhost:${Config.webserverPort}/file/${interaction.id}/${filename}\n` +
 				`${humanFileSize(filesize, 2)}`,
 		allowedMentions: {
 			users: []
